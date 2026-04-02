@@ -1,0 +1,262 @@
+/* ── Page ───────────────────────────────────────── */
+.page {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 0;
+}
+
+.header {
+  padding: 28px 48px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+}
+
+.header-sub {
+  font-size: 13px;
+  color: var(--text);
+  opacity: .6;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: 1fr;
+  gap: 0;
+  height: 100%;
+}
+
+/* ── Sections ────────────────────────────────────── */
+.section {
+  padding: 48px;
+}
+
+.section + .section {
+  border-left: 1px solid var(--border);
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  opacity: 0.5;
+  margin-bottom: 28px;
+}
+
+/* ── Table ───────────────────────────────────────── */
+.matrix {
+  border-collapse: separate;
+  border-spacing: 5px;
+  width: 100%;
+}
+
+.matrix th,
+.matrix td {
+  text-align: center;
+}
+
+.corner {
+  background: transparent;
+  border: none !important;
+}
+
+.axis-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-h);
+  opacity: 0.7;
+  text-align: center;
+  padding-bottom: 6px;
+}
+
+.head {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 0 0 12px;
+  min-width: 120px;
+}
+
+.guessed-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-h);
+  opacity: 0.7;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  white-space: nowrap;
+  padding-right: 12px;
+  border: none;
+}
+
+.row-head {
+  text-align: right !important;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  padding-right: 14px;
+}
+
+.cell {
+  font-size: 22px;
+  font-weight: 500;
+  border-radius: 10px;
+  padding: 22px 16px;
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+  transition: background 0.15s;
+}
+
+.correct {
+  background-color: color-mix(in srgb, #22c55e calc(var(--v) * 22%), var(--cell-bg));
+}
+
+.wrong {
+  background-color: color-mix(in srgb, #ef4444 calc(var(--v) * 18%), var(--cell-bg));
+}
+
+/* ── Summary ─────────────────────────────────────── */
+.summary {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── Card ───────────────────────────────────────────────── */
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 3px;
+}
+
+.card-header p {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── Confusion Matrix ───────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  padding: 20px 24px;
+}
+
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 10px 14px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.corner {
+  border: none !important;
+  background: transparent !important;
+}
+
+.axis-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text);
+  padding-bottom: 10px;
+}
+
+.row-axis {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 14px 8px;
+}
+
+.col-head,
+.row-head {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-h);
+  background: var(--accent-bg);
+  border-radius: 6px;
+}
+
+.cell {
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  min-width: 72px;
+  transition: background 0.2s;
+}
+
+.cell-correct {
+  color: #166534;
+  background-color: rgba(34, 197, 94, calc(0.08 + var(--intensity) * 0.5));
+}
+
+.cell-wrong {
+  color: #7c2d12;
+  background-color: rgba(239, 68, 68, calc(0.04 + var(--intensity) * 0.35));
+}
+
+@media (prefers-color-scheme: dark) {
+  .cell-correct { color: #86efac; }
+  .cell-wrong   { color: #fca5a5; }
+}
+
+/* ── AI Summary ─────────────────────────────────────────── */
+.summary-body {
+  padding: 20px 24px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.empty {
+  font-style: italic;
+  opacity: 0.6;
+  margin: 0;
+}
+
+/* ── Loading ────────────────────────────────────────────── */
+.loading {
+  padding: 32px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text);
+  opacity: 0.6;
+}
