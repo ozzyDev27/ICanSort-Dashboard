@@ -1,0 +1,9 @@
+Dashboard elements to include:
+- Total number of items disposed
+- Separated by category, then calculated to a total
+- Total #/% of items missorted
+- Number of items disposed per day (per class and calculated total)
+- Total #/% of items missorted per day (per class and calculated total)
+- # of items diverted from landfill
+- Top 5 items most often missorted (by %)
+- Confusion table, with recycling garbage and compost on both the x and y axis, where x is the actual and y is the guessed
