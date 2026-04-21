@@ -28,6 +28,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .page {
+  height: 100vh; /* fallback for older Safari */
   height: 100dvh;
   overflow: hidden;
   display: grid;
@@ -451,9 +452,10 @@
   .tm-bar-track { display: none; }
   .tm-detail    { font-size: 11px; }
 
-  /* Chat bar: Binnie smaller on mobile */
+  /* Chat bar: Binnie smaller on mobile + safe-area for home bar */
   .chat-bar {
     min-height: clamp(64px, 9vh, 90px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .binnie-img {
     height: clamp(56px, 8vh, 80px);
@@ -464,9 +466,8 @@
     padding-right: clamp(8px, 2.5vw, 14px);
   }
 
-  /* Chat response: allow more height on mobile */
-  .chat-response {
-    max-height: clamp(80px, 18vh, 120px);
+  /* Prevent Safari zoom on input focus — font-size must be >= 16px */
+  .chat-input {
+    font-size: 16px;
   }
 }
-
