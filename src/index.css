@@ -1,11 +1,4 @@
-/* All tokens and reset live in App.css — this file only adds the accent strip. */
 body {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #a16207 0%, #2563eb 50%, #16a34a 100%) 1;
-}
-
-/* Three-category accent strip at the very top of the page */
-body {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #a16207 0%, #2563eb 50%, #16a34a 100%) 1;
+  border-top: 4px solid transparent;
+  border-image: linear-gradient(90deg, #1a6fc4 0%, #1aad1a 100%) 1;
 }

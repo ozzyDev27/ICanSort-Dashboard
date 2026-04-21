@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { SCHEDULE, getActiveSlot, getNextSlot } from './schedule'
+import { getActiveSlot, getNextSlot } from './schedule'
 
+/* ── Brand / data constants ──────────────────────── */
 const CATEGORIES = ['Garbage', 'Recycling', 'Compost']
 const CAT_COLOR  = { Garbage: '#a16207', Recycling: '#2563eb', Compost: '#16a34a' }
 const CAT_ICON   = { Garbage: '🗑️', Recycling: '♻️', Compost: '🌱' }
 
-const DEFAULT_MATRIX = {
+const MATRIX = {
   Garbage:   { Garbage: 246, Recycling:  27, Compost:  27 },
   Recycling: { Garbage:  30, Recycling: 228, Compost:  42 },
   Compost:   { Garbage:  24, Recycling:  45, Compost: 231 },
@@ -28,73 +29,89 @@ const DAILY_SESSIONS = [
 ]
 
 const TOP_MISSORTED = [
-  { item: 'Plastic bags',  actualBin: 'Garbage',   guessedBin: 'Recycling', count: 67, pct: 45 },
-  { item: 'Soda cans',     actualBin: 'Recycling', guessedBin: 'Garbage',   count: 54, pct: 38 },
-  { item: 'Banana peels',  actualBin: 'Compost',   guessedBin: 'Recycling', count: 41, pct: 31 },
-  { item: 'Juice boxes',   actualBin: 'Recycling', guessedBin: 'Garbage',   count: 38, pct: 28 },
-  { item: 'Coffee cups',   actualBin: 'Compost',   guessedBin: 'Garbage',   count: 29, pct: 25 },
+  { item: 'Plastic bags',  actual: 'Garbage',   guessed: 'Recycling', pct: 45 },
+  { item: 'Soda cans',     actual: 'Recycling', guessed: 'Garbage',   pct: 38 },
+  { item: 'Banana peels',  actual: 'Compost',   guessed: 'Recycling', pct: 31 },
+  { item: 'Juice boxes',   actual: 'Recycling', guessed: 'Garbage',   pct: 28 },
+  { item: 'Coffee cups',   actual: 'Compost',   guessed: 'Garbage',   pct: 25 },
 ]
 
-function colTotal(m, col) {
-  return CATEGORIES.reduce((s, r) => s + (m[r][col] ?? 0), 0)
-}
-function totalItems(m) {
-  return CATEGORIES.reduce((s, r) => s + colTotal(m, r), 0)
-}
-function overallAccuracy(m) {
-  const correct = CATEGORIES.reduce((s, c) => s + m[c][c], 0)
-  const total   = totalItems(m)
-  return total === 0 ? null : Math.round(correct / total * 100)
-}
-function pct(m, row, col) {
-  const t = colTotal(m, col)
-  return t === 0 ? null : Math.round(m[row][col] / t * 100)
-}
-function totalMissorted(m) {
-  return CATEGORIES.reduce((s, col) =>
-    s + CATEGORIES.reduce((ss, row) => row === col ? ss : ss + (m[row][col] ?? 0), 0), 0)
-}
-function divertedFromLandfill(m) {
-  return (m['Recycling']?.['Recycling'] ?? 0) + (m['Compost']?.['Compost'] ?? 0)
-}
-function fmt12(t) {
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'pm' : 'am'}`
-}
-function fmtDate(d) {
-  return new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
-}
+const SUGGESTED = [
+  'What items are most often confused?',
+  'Which class sorts best?',
+  'How many items avoided the landfill?',
+  'What should teachers focus on?',
+  'How do I use this dashboard?',
+]
+
+/* ── Math helpers ────────────────────────────────── */
+const colTotal        = (m, col) => CATEGORIES.reduce((s, r) => s + (m[r][col] ?? 0), 0)
+const totalItems      = m => CATEGORIES.reduce((s, r) => s + colTotal(m, r), 0)
+const pct             = (m, row, col) => { const t = colTotal(m, col); return t === 0 ? null : Math.round(m[row][col] / t * 100) }
+const overallAcc      = m => { const c = CATEGORIES.reduce((s, cat) => s + m[cat][cat], 0); const t = totalItems(m); return t === 0 ? null : Math.round(c / t * 100) }
+const totalMissorted  = m => CATEGORIES.reduce((s, col) => s + CATEGORIES.reduce((ss, row) => row === col ? ss : ss + (m[row][col] ?? 0), 0), 0)
+const diverted        = m => (m.Recycling?.Recycling ?? 0) + (m.Compost?.Compost ?? 0)
+
+/* ── Format helpers ──────────────────────────────── */
+const fmt12   = t => { const [h, min] = t.split(':').map(Number); return `${h % 12 || 12}:${String(min).padStart(2,'0')} ${h >= 12 ? 'pm' : 'am'}` }
+const fmtDate = d => new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+
+/* ── Live clock ──────────────────────────────────── */
 function useNow() {
   const [now, setNow] = useState(new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 10000)
-    return () => clearInterval(id)
-  }, [])
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 10000); return () => clearInterval(id) }, [])
   return now
 }
 
+/* ── AI helpers ──────────────────────────────────── */
+function buildDataContext() {
+  const t = totalItems(MATRIX), mis = totalMissorted(MATRIX)
+  return [
+    `School waste-sorting dashboard. ${t} total items sorted across 6 grades.`,
+    `Overall accuracy: ${overallAcc(MATRIX)}%. Missorted: ${mis} items (${Math.round(mis/t*100)}%).`,
+    `Diverted from landfill: ${diverted(MATRIX)} items (${Math.round(diverted(MATRIX)/t*100)}%).`,
+    `Category accuracy — Garbage: ${pct(MATRIX,'Garbage','Garbage')}%, Recycling: ${pct(MATRIX,'Recycling','Recycling')}%, Compost: ${pct(MATRIX,'Compost','Compost')}%.`,
+    `Top missorted: ${TOP_MISSORTED.map(i=>`${i.item} sorted as ${i.guessed} ${i.pct}% of the time`).join('; ')}.`,
+    `Sessions cover Grades 3–8, April 7–14 2026.`,
+  ].join(' ')
+}
+
+function localAnswer(raw) {
+  const q = raw.toLowerCase()
+  if (/confus|most often|missort|wrong|mistake|top/.test(q))
+    return `The most confused items are: ${TOP_MISSORTED.slice(0,3).map(i=>`${i.item} (${i.pct}%, sorted as ${i.guessed})`).join(', ')}.`
+  if (/class|grade|best|worst/.test(q)) {
+    const best = DAILY_SESSIONS.reduce((a,s) => s.correct/s.total > a.correct/a.total ? s : a)
+    return `${best.grade} had the best session at ${Math.round(best.correct/best.total*100)}% accuracy on ${fmtDate(best.date)}.`
+  }
+  if (/landfill|divert/.test(q)) {
+    const d = diverted(MATRIX)
+    return `${d.toLocaleString()} items (${Math.round(d/totalItems(MATRIX)*100)}%) were correctly sorted into recycling or compost, keeping them out of the landfill.`
+  }
+  if (/recycl/.test(q))  return `Recycling accuracy is ${pct(MATRIX,'Recycling','Recycling')}%. The biggest errors are plastic bags and juice boxes.`
+  if (/compost/.test(q)) return `Compost accuracy is ${pct(MATRIX,'Compost','Compost')}%. Banana peels and coffee cups are most often misplaced.`
+  if (/garbage|trash/.test(q)) return `Garbage accuracy is ${pct(MATRIX,'Garbage','Garbage')}%. Students handle this category best overall.`
+  if (/focus|improve|tip|suggest|teach/.test(q)) return `Focus on recycling — it has the lowest accuracy. Plastic bags (not recyclable) and juice boxes are the main sources of confusion.`
+  if (/how.*use|what.*dashboard|what.*this|how.*work/.test(q)) return `This dashboard tracks student recycling accuracy. The Confusion Matrix shows how items were sorted vs. how they should have been. The Daily tab breaks down accuracy by class and date. Top Missorted shows the most common errors.`
+  return `Overall accuracy is ${overallAcc(MATRIX)}%. Try asking: which items are most confused, which class sorts best, or how many items avoided the landfill.`
+}
+
+/* ── Views ───────────────────────────────────────── */
 function MatrixView({ matrix }) {
   return (
     <div className="mx">
-      {/* Header row */}
-      <div className="mx-origin"><span className="mx-axis"></span></div>
-      {CATEGORIES.map(c => (
-        <div key={c} className="mx-col-head">{CAT_ICON[c]}{c}</div>
-      ))}
+      <div className="mx-origin"><span className="mx-axis">Actual →</span></div>
+      {CATEGORIES.map(c => <div key={c} className="mx-col-head">{CAT_ICON[c]} {c}</div>)}
       {CATEGORIES.flatMap((row, ri) => [
         <div key={`h-${row}`} className="mx-row-head">
-          {ri === 1 && <span className="mx-axis" style={{ display: 'block', marginBottom: 3 }}>Guessed ↓</span>}
+          {ri === 1 && <span className="mx-axis" style={{ display:'block', marginBottom:3 }}>Guessed ↓</span>}
           <span>{CAT_ICON[row]} {row}</span>
         </div>,
         ...CATEGORIES.map(col => {
           const v = pct(matrix, row, col)
           return (
-            <div
-              key={`${row}-${col}`}
-              className={`mx-cell ${row === col ? 'mx-correct' : 'mx-wrong'}`}
-              style={{ '--v': (v ?? 0) / 100 }}
-            >
-              <span className="mx-pct">{v == null ? '—' : `${v}%`}</span>
+            <div key={`${row}-${col}`} className={`mx-cell ${row===col ? 'mx-correct' : 'mx-wrong'}`} style={{'--v':(v??0)/100}}>
+              <span className="mx-pct">{v==null ? '—' : `${v}%`}</span>
               <span className="mx-count">{matrix[row][col]}</span>
             </div>
           )
@@ -110,20 +127,13 @@ function DailyView({ sessions }) {
     <div className="daily-wrap">
       {dates.map(date => {
         const rows     = sessions.filter(s => s.date === date)
-        const dayTotal = rows.reduce((s, r) => s + r.total, 0)
-        const dayMiss  = rows.reduce((s, r) => s + (r.total - r.correct), 0)
+        const dayTotal = rows.reduce((s,r) => s+r.total, 0)
+        const dayMiss  = rows.reduce((s,r) => s+(r.total-r.correct), 0)
         return (
           <div key={date} className="daily-block">
             <div className="daily-date">{fmtDate(date)}</div>
             <table className="daily-table">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Items</th>
-                  <th>Missorted</th>
-                  <th>Accuracy</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Class</th><th>Items</th><th>Missorted</th><th>Accuracy</th></tr></thead>
               <tbody>
                 {rows.map(s => {
                   const miss = s.total - s.correct
@@ -143,7 +153,7 @@ function DailyView({ sessions }) {
                   <td className="dt-grade dt-total">Day total</td>
                   <td className="dt-total">{dayTotal}</td>
                   <td className="dt-miss dt-total">{dayMiss}</td>
-                  <td className="dt-acc dt-total">{Math.round((dayTotal - dayMiss) / dayTotal * 100)}%</td>
+                  <td className="dt-acc dt-total">{Math.round((dayTotal-dayMiss)/dayTotal*100)}%</td>
                 </tr>
               </tfoot>
             </table>
@@ -159,23 +169,15 @@ function TopMissortedView({ items }) {
     <div className="topmiss-wrap">
       {items.map((item, i) => (
         <div key={item.item} className="topmiss-row">
-          <span className="tm-rank">#{i + 1}</span>
+          <span className="tm-rank">#{i+1}</span>
           <div className="tm-info">
             <span className="tm-name">{item.item}</span>
             <span className="tm-detail">
-              sorted as{' '}
-              <span style={{ color: CAT_COLOR[item.guessedBin] }}>
-                {CAT_ICON[item.guessedBin]} {item.guessedBin}
-              </span>
-              {' · '}should be{' '}
-              <span style={{ color: CAT_COLOR[item.actualBin] }}>
-                {CAT_ICON[item.actualBin]} {item.actualBin}
-              </span>
+              sorted as <span style={{color:CAT_COLOR[item.guessed]}}>{CAT_ICON[item.guessed]} {item.guessed}</span>
+              {' · '}should be <span style={{color:CAT_COLOR[item.actual]}}>{CAT_ICON[item.actual]} {item.actual}</span>
             </span>
           </div>
-          <div className="tm-bar-track">
-            <div className="tm-bar-fill" style={{ width: `${item.pct}%`, background: CAT_COLOR[item.guessedBin] }} />
-          </div>
+          <div className="tm-bar-track"><div className="tm-bar-fill" style={{width:`${item.pct}%`}} /></div>
           <span className="tm-pct">{item.pct}%</span>
         </div>
       ))}
@@ -183,56 +185,14 @@ function TopMissortedView({ items }) {
   )
 }
 
-/* ── AI chat helpers ─────────────────────────────────── */
-function buildDataContext() {
-  const t   = totalItems(MATRIX)
-  const mis = totalMissorted(MATRIX)
-  const acc = overallAccuracy(MATRIX)
-  const div = divertedFromLandfill(MATRIX)
-  return [
-    `School waste-sorting dashboard. ${t} total items sorted across 6 grades.`,
-    `Overall accuracy: ${acc}%. Missorted: ${mis} items (${Math.round(mis/t*100)}%).`,
-    `Diverted from landfill (correct recycling+compost): ${div} items (${Math.round(div/t*100)}%).`,
-    `Category accuracy — Garbage: ${pct(MATRIX,'Garbage','Garbage')}%, Recycling: ${pct(MATRIX,'Recycling','Recycling')}%, Compost: ${pct(MATRIX,'Compost','Compost')}%.`,
-    `Top missorted items: ${TOP_MISSORTED.map(i=>`${i.item} sorted as ${i.guessedBin} ${i.pct}% of the time`).join('; ')}.`,
-    `Daily sessions cover Grades 3–8, April 7–14 2026.`,
-  ].join(' ')
-}
-
-function localAnswer(raw) {
-  const q = raw.toLowerCase()
-  if (/confus|most often|missort|wrong|mistake|top/.test(q))
-    return `The most confused items are: ${TOP_MISSORTED.slice(0,3).map(i=>`${i.item} (${i.pct}%, sorted as ${i.guessedBin})`).join(', ')}.`
-  if (/class|grade|best|worst/.test(q)) {
-    const best = DAILY_SESSIONS.reduce((a,s) => s.correct/s.total > a.correct/a.total ? s : a)
-    return `${best.grade} had the best individual session at ${Math.round(best.correct/best.total*100)}% accuracy on ${best.date}.`
-  }
-  if (/landfill|divert/.test(q)) {
-    const d = divertedFromLandfill(MATRIX)
-    return `${d.toLocaleString()} items (${Math.round(d/totalItems(MATRIX)*100)}%) were correctly sorted into recycling or compost, keeping them out of the landfill.`
-  }
-  if (/recycl/.test(q))  return `Recycling accuracy is ${pct(MATRIX,'Recycling','Recycling')}%. The biggest errors are plastic bags (should be garbage) and soda cans (should be recycling).`
-  if (/compost/.test(q)) return `Compost accuracy is ${pct(MATRIX,'Compost','Compost')}%. Banana peels and coffee cups are most often placed in the wrong bin.`
-  if (/garbage|trash/.test(q)) return `Garbage accuracy is ${pct(MATRIX,'Garbage','Garbage')}%. Students handle this category best overall.`
-  if (/focus|improve|tip|suggest|teach/.test(q)) return `Focus on recycling — it has the lowest accuracy. Plastic bags (not recyclable) and juice boxes are the main sources of confusion.`
-  return `Overall accuracy is ${overallAccuracy(MATRIX)}%. Try asking: which items are most confused, which class sorts best, or how many items avoided the landfill.`
-}
-
-const SUGGESTED = [
-  'What items are most often confused?',
-  'Which class sorts best?',
-  'How many items avoided the landfill?',
-  'What should teachers focus on?',
-]
-
+/* ── Chat ────────────────────────────────────────── */
 function ChatPanel() {
-  const [open, setOpen]       = useState(false)
-  const [msgs, setMsgs]       = useState([{ role: 'assistant', content: 'Hi! Ask me anything about the sorting data, or try a suggestion below.' }])
+  const [msgs, setMsgs]       = useState([])
   const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
-  const bottomRef             = useRef(null)
+  const answerRef             = useRef(null)
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, open])
+  useEffect(() => { answerRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, loading])
 
   async function send(text) {
     const msg = (text ?? input).trim()
@@ -241,88 +201,85 @@ function ChatPanel() {
     const history = [...msgs, { role: 'user', content: msg }]
     setMsgs(history)
     setLoading(true)
-    const key = import.meta.env.VITE_OPENAI_KEY
+    const key = import.meta.env.VITE_GEMINI_KEY
     if (!key) {
       setMsgs([...history, { role: 'assistant', content: localAnswer(msg) }])
       setLoading(false)
       return
     }
     try {
-      const res  = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: `You are a concise assistant for a school waste-sorting dashboard. Answer in 2–3 sentences using only this data:\n${buildDataContext()}` },
-            ...history,
-          ],
-          max_tokens: 200,
-        }),
-      })
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: `You are Binnie, a friendly robot assistant for a school waste-sorting dashboard. Be warm, encouraging, and concise — 2–3 sentences. Use only this data:\n${buildDataContext()}` }] },
+            contents: history.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+          }),
+        }
+      )
       const data = await res.json()
-      setMsgs([...history, { role: 'assistant', content: data.choices?.[0]?.message?.content ?? 'No response.' }])
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "Sorry, I couldn't get a response."
+      setMsgs([...history, { role: 'assistant', content: reply }])
     } catch {
       setMsgs([...history, { role: 'assistant', content: 'Network error — please try again.' }])
     }
     setLoading(false)
   }
 
+  const lastAnswer = [...msgs].reverse().find(m => m.role === 'assistant')
+
   return (
     <>
-      <button className="chat-btn" onClick={() => setOpen(o => !o)} aria-label="Ask AI">
-        {open ? '✕' : '💬'}
-      </button>
-      {open && (
-        <div className="chat-panel">
-          <div className="chat-header">Ask about the data</div>
-          <div className="chat-msgs">
-            {msgs.map((m, i) => (
-              <div key={i} className={`chat-msg chat-${m.role}`}>{m.content}</div>
-            ))}
-            {loading && <div className="chat-msg chat-assistant chat-loading">···</div>}
-            <div ref={bottomRef} />
-          </div>
-          {msgs.length === 1 && (
-            <div className="chat-chips">
-              {SUGGESTED.map(s => (
-                <button key={s} className="chat-chip" onClick={() => send(s)}>{s}</button>
-              ))}
-            </div>
-          )}
-          <form className="chat-form" onSubmit={e => { e.preventDefault(); send() }}>
-            <input
-              className="chat-input"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask a question…"
-              disabled={loading}
-              autoFocus
-            />
-            <button className="chat-send" type="submit" disabled={loading || !input.trim()}>↑</button>
-          </form>
+      {(lastAnswer || loading) && (
+        <div className="chat-response" ref={answerRef}>
+          {loading
+            ? <span className="chat-loading">Binnie is thinking…</span>
+            : <span>{lastAnswer.content}</span>
+          }
         </div>
       )}
+      <div className="chat-bar">
+        <div className="chat-bar-avatar">
+          <div className="robot-placeholder" aria-label="Binnie" />
+        </div>
+        <form className="chat-form" onSubmit={e => { e.preventDefault(); send() }}>
+          <input
+            className="chat-input"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ask Binnie…"
+            disabled={loading}
+          />
+          <button className="chat-send" type="submit" disabled={loading || !input.trim()}>Send</button>
+        </form>
+        <div className="chat-chips">
+          {SUGGESTED.slice(0, 3).map(s => (
+            <button key={s} className="chat-chip" onClick={() => send(s)}>{s}</button>
+          ))}
+        </div>
+      </div>
     </>
   )
 }
 
-function App() {
-  const [matrix]        = useState(DEFAULT_MATRIX)
+/* ── App ─────────────────────────────────────────── */
+export default function App() {
   const [view, setView] = useState('matrix')
-  const now             = useNow()
-
+  const now      = useNow()
   const active   = getActiveSlot(now)
   const next     = getNextSlot(now)
-  const acc      = overallAccuracy(matrix)
-  const total    = totalItems(matrix)
-  const missed   = totalMissorted(matrix)
+  const acc      = overallAcc(MATRIX)
+  const total    = totalItems(MATRIX)
+  const missed   = totalMissorted(MATRIX)
   const missPct  = total > 0 ? Math.round(missed / total * 100) : null
-  const diverted = divertedFromLandfill(matrix)
+  const div      = diverted(MATRIX)
   const timeStr  = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="page">
+
       <header className="header">
         <span className="logo">ICanSort</span>
         <div className="header-right">
@@ -349,34 +306,22 @@ function App() {
               <span className="kpi-lbl">Items sorted</span>
             </div>
             <div className="kpi">
-              <span className="kpi-val kpi-red">
-                {missed} <span className="kpi-sub">{missPct !== null ? `${missPct}%` : ''}</span>
-              </span>
+              <span className="kpi-val kpi-red">{missed} <span className="kpi-sub">{missPct !== null ? `${missPct}%` : ''}</span></span>
               <span className="kpi-lbl">Missorted</span>
             </div>
             <div className="kpi">
-              <span className="kpi-val kpi-blue">{diverted.toLocaleString()}</span>
+              <span className="kpi-val kpi-blue">{div.toLocaleString()}</span>
               <span className="kpi-lbl">Diverted from landfill</span>
             </div>
           </div>
 
           <div className="tabs">
-            {[
-              ['matrix',  'Confusion Matrix'],
-              ['daily',   'Daily'],
-              ['topmiss', 'Top Missorted'],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                className={`tab${view === id ? ' tab-active' : ''}`}
-                onClick={() => setView(id)}
-              >
-                {label}
-              </button>
+            {[['matrix','Confusion Matrix'],['daily','Daily'],['topmiss','Top Missorted']].map(([id, label]) => (
+              <button key={id} className={`tab${view===id?' tab-active':''}`} onClick={() => setView(id)}>{label}</button>
             ))}
           </div>
 
-          {view === 'matrix'  && <MatrixView      matrix={matrix} />}
+          {view === 'matrix'  && <MatrixView      matrix={MATRIX} />}
           {view === 'daily'   && <DailyView        sessions={DAILY_SESSIONS} />}
           {view === 'topmiss' && <TopMissortedView items={TOP_MISSORTED} />}
 
@@ -384,8 +329,7 @@ function App() {
       </main>
 
       <ChatPanel />
+
     </div>
   )
 }
-
-export default App
