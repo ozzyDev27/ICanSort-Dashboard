@@ -36,14 +36,6 @@ const TOP_MISSORTED = [
   { item: 'Coffee cups',   actual: 'Compost',   guessed: 'Garbage',   pct: 25 },
 ]
 
-const SUGGESTED = [
-  'What items are most often confused?',
-  'Which class sorts best?',
-  'How many items avoided the landfill?',
-  'What should teachers focus on?',
-  'How do I use this dashboard?',
-]
-
 /* ── Math helpers ────────────────────────────────── */
 const colTotal        = (m, col) => CATEGORIES.reduce((s, r) => s + (m[r][col] ?? 0), 0)
 const totalItems      = m => CATEGORIES.reduce((s, r) => s + colTotal(m, r), 0)
@@ -66,57 +58,90 @@ function useNow() {
 /* ── AI helpers ──────────────────────────────────── */
 function buildDataContext() {
   const t = totalItems(MATRIX), mis = totalMissorted(MATRIX)
+
+  // Confusion matrix detail
+  const matrixDetail = CATEGORIES.flatMap(row =>
+    CATEGORIES.map(col => `${row}→${col}: ${MATRIX[row][col]} items (${pct(MATRIX,row,col)}%)`)
+  ).join(', ')
+
+  // Per-session breakdown
+  const sessionDetail = DAILY_SESSIONS.map(s => {
+    const acc = Math.round(s.correct / s.total * 100)
+    const miss = s.total - s.correct
+    return `${s.grade} on ${s.date}: ${s.total} items, ${miss} missorted, ${acc}% accuracy`
+  }).join('; ')
+
   return [
-    `School waste-sorting dashboard. ${t} total items sorted across 6 grades.`,
-    `Overall accuracy: ${overallAcc(MATRIX)}%. Missorted: ${mis} items (${Math.round(mis/t*100)}%).`,
-    `Diverted from landfill: ${diverted(MATRIX)} items (${Math.round(diverted(MATRIX)/t*100)}%).`,
+    `=== ICanSort Dashboard Data ===`,
+    `Total items sorted: ${t} across Grades 3–8, April 7–14 2026.`,
+    `Overall accuracy: ${overallAcc(MATRIX)}%. Total missorted: ${mis} items (${Math.round(mis/t*100)}%).`,
+    `Items diverted from landfill (correct recycling + compost): ${diverted(MATRIX)} (${Math.round(diverted(MATRIX)/t*100)}%).`,
     `Category accuracy — Garbage: ${pct(MATRIX,'Garbage','Garbage')}%, Recycling: ${pct(MATRIX,'Recycling','Recycling')}%, Compost: ${pct(MATRIX,'Compost','Compost')}%.`,
-    `Top missorted: ${TOP_MISSORTED.map(i=>`${i.item} sorted as ${i.guessed} ${i.pct}% of the time`).join('; ')}.`,
-    `Sessions cover Grades 3–8, April 7–14 2026.`,
-  ].join(' ')
+    `Overall (Actual→Guessed): ${matrixDetail}.`,
+    `Top missorted items: ${TOP_MISSORTED.map(i=>`"${i.item}" sorted as ${i.guessed} ${i.pct}% of the time (should be ${i.actual})`).join('; ')}.`,
+    `Per-session results: ${sessionDetail}.`,
+  ].join('\n')
 }
 
-function localAnswer(raw) {
-  const q = raw.toLowerCase()
-  if (/confus|most often|missort|wrong|mistake|top/.test(q))
-    return `The most confused items are: ${TOP_MISSORTED.slice(0,3).map(i=>`${i.item} (${i.pct}%, sorted as ${i.guessed})`).join(', ')}.`
-  if (/class|grade|best|worst/.test(q)) {
-    const best = DAILY_SESSIONS.reduce((a,s) => s.correct/s.total > a.correct/a.total ? s : a)
-    return `${best.grade} had the best session at ${Math.round(best.correct/best.total*100)}% accuracy on ${fmtDate(best.date)}.`
-  }
-  if (/landfill|divert/.test(q)) {
-    const d = diverted(MATRIX)
-    return `${d.toLocaleString()} items (${Math.round(d/totalItems(MATRIX)*100)}%) were correctly sorted into recycling or compost, keeping them out of the landfill.`
-  }
-  if (/recycl/.test(q))  return `Recycling accuracy is ${pct(MATRIX,'Recycling','Recycling')}%. The biggest errors are plastic bags and juice boxes.`
-  if (/compost/.test(q)) return `Compost accuracy is ${pct(MATRIX,'Compost','Compost')}%. Banana peels and coffee cups are most often misplaced.`
-  if (/garbage|trash/.test(q)) return `Garbage accuracy is ${pct(MATRIX,'Garbage','Garbage')}%. Students handle this category best overall.`
-  if (/focus|improve|tip|suggest|teach/.test(q)) return `Focus on recycling — it has the lowest accuracy. Plastic bags (not recyclable) and juice boxes are the main sources of confusion.`
-  if (/how.*use|what.*dashboard|what.*this|how.*work/.test(q)) return `This dashboard tracks student recycling accuracy. The Confusion Matrix shows how items were sorted vs. how they should have been. The Daily tab breaks down accuracy by class and date. Top Missorted shows the most common errors.`
-  return `Overall accuracy is ${overallAcc(MATRIX)}%. Try asking: which items are most confused, which class sorts best, or how many items avoided the landfill.`
+function buildSystemPrompt() {
+  return `You are Binnie, a friendly and encouraging robot assistant built into the ICanSort school waste-sorting dashboard. Teachers and staff use you to understand student sorting data and get practical advice on improving results.
+
+YOUR ROLE:
+- Answer questions strictly about the data shown in this dashboard.
+- Suggest specific, age-appropriate teaching strategies to help students improve their sorting accuracy.
+- Be warm, encouraging, and concise — 2 to 4 sentences max unless a list is genuinely helpful.
+- Never discuss topics unrelated to waste sorting, this dashboard, or teaching strategies for it.
+- If asked something outside your scope, politely redirect: "I can only help with the sorting data and teaching strategies — try asking about accuracy, missorted items, or how to help students improve!"
+
+TEACHING STRATEGY IDEAS YOU CAN DRAW FROM:
+- Visual anchor charts near bins showing what goes where with pictures
+- "Sort it!" warm-up games at the start of class using item cards
+- Peer teaching: high-accuracy students explain their thinking to others
+- Focus lessons on the most-confused items (e.g. plastic bags, juice boxes)
+- "Why does it matter?" discussions linking sorting to landfill impact
+- Grade-level competitions or class challenges using accuracy data
+- Hands-on sorting stations with real (clean) items
+- Error analysis: show students the confusion matrix and ask them to spot patterns
+
+CURRENT DASHBOARD DATA:
+${buildDataContext()}`
 }
 
 /* ── Views ───────────────────────────────────────── */
 function MatrixView({ matrix }) {
   return (
-    <div className="mx">
-      <div className="mx-origin"><span className="mx-axis">Actual →</span></div>
-      {CATEGORIES.map(c => <div key={c} className="mx-col-head">{CAT_ICON[c]} {c}</div>)}
-      {CATEGORIES.flatMap((row, ri) => [
-        <div key={`h-${row}`} className="mx-row-head">
-          {ri === 1 && <span className="mx-axis" style={{ display:'block', marginBottom:3 }}>Guessed ↓</span>}
-          <span>{CAT_ICON[row]} {row}</span>
-        </div>,
-        ...CATEGORIES.map(col => {
-          const v = pct(matrix, row, col)
-          return (
-            <div key={`${row}-${col}`} className={`mx-cell ${row===col ? 'mx-correct' : 'mx-wrong'}`} style={{'--v':(v??0)/100}}>
-              <span className="mx-pct">{v==null ? '—' : `${v}%`}</span>
-              <span className="mx-count">{matrix[row][col]}</span>
-            </div>
-          )
-        }),
-      ])}
+    <div className="mx-outer">
+      <div className="mx">
+        {/* “Actual →” spanning the 3 cell columns, row 1 */}
+        <div className="mx-col-axis">Actual →</div>
+        {/* Column headers, row 2 */}
+        {CATEGORIES.map((c, i) => (
+          <div key={c} className="mx-col-head" style={{gridColumn: i+2, gridRow: 2}}>
+            {CAT_ICON[c]} {c}
+          </div>
+        ))}
+        {/* Data rows */}
+        {CATEGORIES.flatMap((row, ri) => [
+          <div key={`h-${row}`} className="mx-row-head" style={{gridColumn: 1, gridRow: ri+3}}>
+            {CAT_ICON[row]} {row}
+          </div>,
+          ...CATEGORIES.map((col, ci) => {
+            const v = pct(matrix, row, col)
+            return (
+              <div
+                key={`${row}-${col}`}
+                className={`mx-cell ${row===col ? 'mx-correct' : 'mx-wrong'}`}
+                style={{'--v':(v??0)/100, gridColumn: ci+2, gridRow: ri+3}}
+              >
+                <span className="mx-pct">{v==null ? '—' : `${v}%`}</span>
+                <span className="mx-count">{matrix[row][col]}</span>
+              </div>
+            )
+          }),
+        ])}
+      </div>
+      {/* “Guessed ↓” sits to the right of the entire grid */}
+      <div className="mx-row-axis"><span>Guessed →</span></div>
     </div>
   )
 }
@@ -185,7 +210,6 @@ function TopMissortedView({ items }) {
   )
 }
 
-/* ── Chat ────────────────────────────────────────── */
 function ChatPanel() {
   const [msgs, setMsgs]       = useState([])
   const [input, setInput]     = useState('')
@@ -202,27 +226,28 @@ function ChatPanel() {
     setMsgs(history)
     setLoading(true)
     const key = import.meta.env.VITE_GEMINI_KEY
-    if (!key) {
-      setMsgs([...history, { role: 'assistant', content: localAnswer(msg) }])
-      setLoading(false)
-      return
-    }
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: `You are Binnie, a friendly robot assistant for a school waste-sorting dashboard. Be warm, encouraging, and concise — 2–3 sentences. Use only this data:\n${buildDataContext()}` }] },
+            systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
             contents: history.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
           }),
         }
       )
       const data = await res.json()
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "Sorry, I couldn't get a response."
+      if (!res.ok) {
+        console.error('Gemini API error:', data)
+        setMsgs([...history, { role: 'assistant', content: data.error?.message ?? `Error ${res.status}` }])
+        setLoading(false)
+        return
+      }
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response.'
       setMsgs([...history, { role: 'assistant', content: reply }])
-    } catch {
+    } catch (err) {
       setMsgs([...history, { role: 'assistant', content: 'Network error — please try again.' }])
     }
     setLoading(false)
@@ -231,19 +256,17 @@ function ChatPanel() {
   const lastAnswer = [...msgs].reverse().find(m => m.role === 'assistant')
 
   return (
-    <>
-      {(lastAnswer || loading) && (
-        <div className="chat-response" ref={answerRef}>
-          {loading
-            ? <span className="chat-loading">Binnie is thinking…</span>
-            : <span>{lastAnswer.content}</span>
-          }
-        </div>
-      )}
-      <div className="chat-bar">
-        <div className="chat-bar-avatar">
-          <div className="robot-placeholder" aria-label="Binnie" />
-        </div>
+    <div className="chat-bar">
+      <img src="/binnieTemporary.png" className="binnie-img" alt="Binnie" />
+      <div className="chat-right">
+        {(lastAnswer || loading) && (
+          <div className="chat-response" ref={answerRef}>
+            {loading
+              ? <span className="chat-loading">Binnie is thinking…</span>
+              : <span>{lastAnswer.content}</span>
+            }
+          </div>
+        )}
         <form className="chat-form" onSubmit={e => { e.preventDefault(); send() }}>
           <input
             className="chat-input"
@@ -254,13 +277,8 @@ function ChatPanel() {
           />
           <button className="chat-send" type="submit" disabled={loading || !input.trim()}>Send</button>
         </form>
-        <div className="chat-chips">
-          {SUGGESTED.slice(0, 3).map(s => (
-            <button key={s} className="chat-chip" onClick={() => send(s)}>{s}</button>
-          ))}
-        </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -316,14 +334,21 @@ export default function App() {
           </div>
 
           <div className="tabs">
-            {[['matrix','Confusion Matrix'],['daily','Daily'],['topmiss','Top Missorted']].map(([id, label]) => (
+            {[['matrix','Overall'],['daily','Daily']].map(([id, label]) => (
               <button key={id} className={`tab${view===id?' tab-active':''}`} onClick={() => setView(id)}>{label}</button>
             ))}
           </div>
 
-          {view === 'matrix'  && <MatrixView      matrix={MATRIX} />}
-          {view === 'daily'   && <DailyView        sessions={DAILY_SESSIONS} />}
-          {view === 'topmiss' && <TopMissortedView items={TOP_MISSORTED} />}
+          <div className="tab-panel">
+            {view === 'matrix' && (
+              <>
+                <MatrixView matrix={MATRIX} />
+                <div className="topmiss-section-title">Top Missorted</div>
+                <TopMissortedView items={TOP_MISSORTED} />
+              </>
+            )}
+            {view === 'daily' && <DailyView sessions={DAILY_SESSIONS} />}
+          </div>
 
         </section>
       </main>
