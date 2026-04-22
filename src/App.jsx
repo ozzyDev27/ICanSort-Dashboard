@@ -35,18 +35,30 @@ const MATRIX = {
 }
 
 const DAILY_SESSIONS = [
-  { date: '2026-04-07', grade: 'Grade 3', total: 148, correct: 120 },
-  { date: '2026-04-07', grade: 'Grade 4', total: 155, correct: 128 },
-  { date: '2026-04-07', grade: 'Grade 5', total: 143, correct: 115 },
-  { date: '2026-04-08', grade: 'Grade 6', total: 152, correct: 124 },
-  { date: '2026-04-08', grade: 'Grade 7', total: 160, correct: 133 },
-  { date: '2026-04-08', grade: 'Grade 8', total: 142, correct: 114 },
-  { date: '2026-04-09', grade: 'Grade 3', total: 151, correct: 123 },
-  { date: '2026-04-09', grade: 'Grade 4', total: 148, correct: 120 },
-  { date: '2026-04-14', grade: 'Grade 5', total: 162, correct: 136 },
-  { date: '2026-04-14', grade: 'Grade 6', total: 155, correct: 126 },
-  { date: '2026-04-14', grade: 'Grade 7', total: 158, correct: 130 },
-  { date: '2026-04-14', grade: 'Grade 8', total: 146, correct: 116 },
+  { date: '2026-04-07', name: "Ms. Smith's Class",  grade: 'Grade 3', total:  87, correct:  71 },
+  { date: '2026-04-07', name: "Mr. Jones' Class",   grade: 'Grade 4', total:  93, correct:  78 },
+  { date: '2026-04-07', name: "Ms. Brown's Class",  grade: 'Grade 5', total:  89, correct:  74 },
+  { date: '2026-04-07', name: "Mr. Davis' Class",   grade: 'Grade 6', total:  91, correct:  73 },
+  { date: '2026-04-07', name: "Ms. Gigg's Class",   grade: 'Grade 7', total:  88, correct:  76 },
+  { date: '2026-04-07', name: "Mr. Wilson's Class", grade: 'Grade 8', total:  84, correct:  67 },
+  { date: '2026-04-08', name: "Ms. Smith's Class",  grade: 'Grade 3', total:  91, correct:  73 },
+  { date: '2026-04-08', name: "Mr. Jones' Class",   grade: 'Grade 4', total:  86, correct:  71 },
+  { date: '2026-04-08', name: "Ms. Brown's Class",  grade: 'Grade 5', total:  94, correct:  79 },
+  { date: '2026-04-08', name: "Mr. Davis' Class",   grade: 'Grade 6', total:  83, correct:  66 },
+  { date: '2026-04-08', name: "Ms. Gigg's Class",   grade: 'Grade 7', total:  92, correct:  81 },
+  { date: '2026-04-08', name: "Mr. Wilson's Class", grade: 'Grade 8', total:  88, correct:  69 },
+  { date: '2026-04-09', name: "Ms. Smith's Class",  grade: 'Grade 3', total:  85, correct:  68 },
+  { date: '2026-04-09', name: "Mr. Jones' Class",   grade: 'Grade 4', total:  90, correct:  76 },
+  { date: '2026-04-09', name: "Ms. Brown's Class",  grade: 'Grade 5', total:  88, correct:  72 },
+  { date: '2026-04-09', name: "Mr. Davis' Class",   grade: 'Grade 6', total:  93, correct:  77 },
+  { date: '2026-04-09', name: "Ms. Gigg's Class",   grade: 'Grade 7', total:  87, correct:  74 },
+  { date: '2026-04-09', name: "Mr. Wilson's Class", grade: 'Grade 8', total:  89, correct:  71 },
+  { date: '2026-04-14', name: "Ms. Smith's Class",  grade: 'Grade 3', total:  92, correct:  77 },
+  { date: '2026-04-14', name: "Mr. Jones' Class",   grade: 'Grade 4', total:  84, correct:  69 },
+  { date: '2026-04-14', name: "Ms. Brown's Class",  grade: 'Grade 5', total:  91, correct:  78 },
+  { date: '2026-04-14', name: "Mr. Davis' Class",   grade: 'Grade 6', total:  88, correct:  71 },
+  { date: '2026-04-14', name: "Ms. Gigg's Class",   grade: 'Grade 7', total:  86, correct:  73 },
+  { date: '2026-04-14', name: "Mr. Wilson's Class", grade: 'Grade 8', total:  91, correct:  74 },
 ]
 
 const TOP_MISSORTED = [
@@ -179,14 +191,15 @@ function DailyView({ sessions }) {
           <div key={date} className="daily-block">
             <div className="daily-date">{fmtDate(date)}</div>
             <table className="daily-table">
-              <thead><tr><th>Class</th><th>Items</th><th>Missorted</th><th>Accuracy</th></tr></thead>
+              <thead><tr><th>Class</th><th>Grade</th><th>Items</th><th>Missorted</th><th>Accuracy</th></tr></thead>
               <tbody>
                 {rows.map(s => {
                   const miss = s.total - s.correct
                   const acc  = Math.round(s.correct / s.total * 100)
                   return (
                     <tr key={s.grade}>
-                      <td className="dt-grade">{s.grade}</td>
+                      <td className="dt-grade">{s.name || s.grade}</td>
+                      <td className="dt-sub">{s.grade}</td>
                       <td>{s.total}</td>
                       <td className="dt-miss">{miss}</td>
                       <td className="dt-acc">{acc}%</td>
@@ -196,7 +209,7 @@ function DailyView({ sessions }) {
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="dt-grade dt-total">Day total</td>
+                  <td className="dt-grade dt-total" colSpan={2}>Day total</td>
                   <td className="dt-total">{dayTotal}</td>
                   <td className="dt-miss dt-total">{dayMiss}</td>
                   <td className="dt-acc dt-total">{Math.round((dayTotal-dayMiss)/dayTotal*100)}%</td>
@@ -313,7 +326,7 @@ function ScheduleEditor({ schedule, setSchedule, onClose }) {
 }
 
 function ChatPanel() {
-  const [msgs, setMsgs]       = useState([{ role: 'assistant', content: "Hi! My name is Binnie! I'm here to answer any questions you have, such as which grades missort most often, or strategies on how to teach students!" }])
+  const [msgs, setMsgs]       = useState([{ role: 'assistant', content: "Hi! My name is Binnie! I'm here to answer any questions you have, such as which grades missort most often, or strategies on how to help students!" }])
   const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
   const answerRef             = useRef(null)

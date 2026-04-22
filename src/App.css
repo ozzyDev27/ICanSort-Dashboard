@@ -277,6 +277,7 @@ html, body { height: 100%; overflow: hidden; }
 .daily-table tbody tr:hover { background: var(--surface); }
 
 .dt-grade { color: var(--text-h); font-weight: 500; }
+.dt-sub   { font-size: 12px; opacity: 0.5; }
 .dt-miss  { color: #e11d48; }
 .dt-acc   { color: var(--text-h); font-weight: 600; }
 .dt-total { font-weight: 700; border-top: 1px solid var(--border); }
@@ -482,6 +483,12 @@ html, body { height: 100%; overflow: hidden; }
   .chat-input {
     font-size: 16px;
   }
+
+  /* Daily table: hide Grade column, tighten padding */
+  .daily-table th, .daily-table td { padding: 5px 7px; font-size: 12px; }
+  .daily-table .dt-sub,
+  .daily-table th:nth-child(2),
+  .daily-table td:nth-child(2) { display: none; }
 }
 
 .sched-overlay {
@@ -637,9 +644,29 @@ html, body { height: 100%; overflow: hidden; }
 }
 
 @media (max-width: 640px) {
-  .sched-row {
-    grid-template-columns: 1fr 80px 72px 72px 28px;
-    gap: 5px;
+  .sched-panel {
+    max-height: 92vh;
+    border-left: none;
+    border-right: none;
+    margin: 0;
+    align-self: flex-end;
   }
+  .sched-row.sched-row-head { display: none; }
+  .sched-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 2px;
+  }
+  /* Name spans full width */
+  .sched-row .sched-input:first-child { grid-column: 1 / 3; }
+  /* Grade takes col 1, delete takes col 2 right-aligned */
+  .sched-row .sched-select { grid-column: 1; }
+  .sched-row .sched-del    { grid-column: 2; justify-self: end; align-self: center; }
+  /* Start + end each take half */
+  .sched-row .sched-time   { grid-column: auto; }
   .sched-input { font-size: 16px; }
 }
