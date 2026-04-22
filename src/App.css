@@ -325,10 +325,22 @@ html, body { height: 100%; overflow: hidden; }
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: stretch;
-  border-top: 2px solid var(--black);
   background: var(--bg);
   min-height: clamp(140px, 20vh, 220px);
   overflow: visible;
+  position: relative;
+}
+
+.chat-bar::before {
+  content: '';
+  position: absolute;
+  top: -72px;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+  z-index: 2;
 }
 
 .binnie-img {
@@ -470,4 +482,164 @@ html, body { height: 100%; overflow: hidden; }
   .chat-input {
     font-size: 16px;
   }
+}
+
+.sched-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.sched-panel {
+  background: var(--bg);
+  border: 2px solid var(--black);
+  width: 100%;
+  max-width: 900px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 6px 6px 0 var(--black);
+}
+
+.sched-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--black);
+}
+.sched-title {
+  font-size: clamp(15px, 1.5vw, 20px);
+  font-weight: 700;
+  color: var(--text-h);
+}
+.sched-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+  line-height: 1;
+  padding: 2px 6px;
+}
+.sched-close:hover { color: #dc2626; }
+
+.sched-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sched-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 120px 120px 32px;
+  gap: 8px;
+  align-items: center;
+}
+.sched-row-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.45;
+  padding-bottom: 2px;
+}
+
+.sched-input {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  outline: none;
+}
+.sched-input:focus { border-color: var(--blue); }
+.sched-select { cursor: pointer; }
+.sched-time { padding: 6px 6px; }
+
+.sched-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  opacity: 0.4;
+  font-size: 14px;
+  padding: 4px;
+  line-height: 1;
+}
+.sched-del:hover { opacity: 1; color: #dc2626; }
+
+.sched-add {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: none;
+  border: 2px dashed var(--border);
+  color: var(--blue);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.sched-add:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 8%, transparent); }
+
+.sched-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 2px solid var(--black);
+}
+.sched-btn-cancel {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.sched-btn-cancel:hover { border-color: var(--black); }
+.sched-btn-save {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: 2px solid var(--blue);
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+}
+.sched-btn-save:hover { filter: brightness(1.1); }
+
+.badge-btn {
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+}
+.badge-btn:hover { filter: brightness(0.9); }
+
+@media (prefers-color-scheme: dark) {
+  .sched-panel { box-shadow: 6px 6px 0 var(--border); }
+  .sched-header, .sched-footer { border-color: var(--border); }
+  .sched-panel { border-color: var(--border); }
+}
+
+@media (max-width: 640px) {
+  .sched-row {
+    grid-template-columns: 1fr 80px 72px 72px 28px;
+    gap: 5px;
+  }
+  .sched-input { font-size: 16px; }
 }

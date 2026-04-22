@@ -1,6 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { getActiveSlot, getNextSlot } from './schedule'
+
+/* ── Default schedule (editable via UI) ─────────── */
+const CLASSES_DEFAULT = [
+  { id: 1, name: "Ms. Smith's Class",  grade: 'Grade 3', start: '08:30', end: '09:15' },
+  { id: 2, name: "Mr. Jones' Class",   grade: 'Grade 4', start: '09:15', end: '10:00' },
+  { id: 3, name: "Ms. Brown's Class",  grade: 'Grade 5', start: '10:15', end: '11:00' },
+  { id: 4, name: "Mr. Davis' Class",   grade: 'Grade 6', start: '11:00', end: '11:45' },
+  { id: 5, name: "Ms. Gigg's Class",   grade: 'Grade 7', start: '12:30', end: '13:15' },
+  { id: 6, name: "Mr. Wilson's Class", grade: 'Grade 8', start: '13:15', end: '14:00' },
+]
+
+const GRADES = ['Kindergarten','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8']
+
+function toMins(t) { const [h,m] = t.split(':').map(Number); return h*60+m }
+function getActiveSlot(sched, now) {
+  const cur = now.getHours()*60+now.getMinutes()
+  return sched.find(s => cur >= toMins(s.start) && cur < toMins(s.end)) ?? null
+}
+function getNextSlot(sched, now) {
+  const cur = now.getHours()*60+now.getMinutes()
+  return [...sched].sort((a,b)=>toMins(a.start)-toMins(b.start)).find(s => toMins(s.start) > cur) ?? null
+}
 
 /* ── Brand / data constants ──────────────────────── */
 const CATEGORIES = ['Garbage', 'Recycling', 'Compost']
@@ -210,8 +231,89 @@ function TopMissortedView({ items }) {
   )
 }
 
+function ScheduleEditor({ schedule, setSchedule, onClose }) {
+  const [draft, setDraft] = useState(schedule.map(s => ({ ...s })))
+
+  function update(id, field, val) {
+    setDraft(d => d.map(s => s.id === id ? { ...s, [field]: val } : s))
+  }
+
+  function addRow() {
+    const newId = Date.now()
+    setDraft(d => [...d, { id: newId, name: '', grade: 'Grade 3', start: '08:00', end: '08:45' }])
+  }
+
+  function removeRow(id) {
+    setDraft(d => d.filter(s => s.id !== id))
+  }
+
+  function save() {
+    setSchedule(draft)
+    onClose()
+  }
+
+  return (
+    <div className="sched-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="sched-panel">
+        <div className="sched-header">
+          <span className="sched-title">Edit Classes &amp; Schedule</span>
+          <button className="sched-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="sched-body">
+          <div className="sched-row sched-row-head">
+            <span>Class Name</span>
+            <span>Grade</span>
+            <span>Start</span>
+            <span>End</span>
+            <span />
+          </div>
+
+          {draft.map(s => (
+            <div key={s.id} className="sched-row">
+              <input
+                className="sched-input"
+                value={s.name}
+                onChange={e => update(s.id, 'name', e.target.value)}
+                placeholder="Ms. Gigg's Class"
+              />
+              <select
+                className="sched-input sched-select"
+                value={s.grade}
+                onChange={e => update(s.id, 'grade', e.target.value)}
+              >
+                {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <input
+                className="sched-input sched-time"
+                type="time"
+                value={s.start}
+                onChange={e => update(s.id, 'start', e.target.value)}
+              />
+              <input
+                className="sched-input sched-time"
+                type="time"
+                value={s.end}
+                onChange={e => update(s.id, 'end', e.target.value)}
+              />
+              <button className="sched-del" onClick={() => removeRow(s.id)} title="Remove">✕</button>
+            </div>
+          ))}
+
+          <button className="sched-add" onClick={addRow}>+ Add class</button>
+        </div>
+
+        <div className="sched-footer">
+          <button className="sched-btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="sched-btn-save" onClick={save}>Save changes</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ChatPanel() {
-  const [msgs, setMsgs]       = useState([])
+  const [msgs, setMsgs]       = useState([{ role: 'assistant', content: "Hi! My name is Binnie! I'm here to answer any questions you have, such as which grades missort most often, or strategies on how to teach students!" }])
   const [input, setInput]     = useState('')
   const [loading, setLoading] = useState(false)
   const answerRef             = useRef(null)
@@ -257,7 +359,7 @@ function ChatPanel() {
 
   return (
     <div className="chat-bar">
-      <img src="/binnieTemporary.png" className="binnie-img" alt="Binnie" />
+      <img src="/Binnie.png" className="binnie-img" alt="Binnie" />
       <div className="chat-right">
         {(lastAnswer || loading) && (
           <div className="chat-response" ref={answerRef}>
@@ -284,10 +386,17 @@ function ChatPanel() {
 
 /* ── App ─────────────────────────────────────────── */
 export default function App() {
-  const [view, setView] = useState('matrix')
+  const [view, setView]       = useState('matrix')
+  const [schedOpen, setSchedOpen] = useState(false)
+  const [schedule, setSchedule]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ics-schedule')) || CLASSES_DEFAULT }
+    catch { return CLASSES_DEFAULT }
+  })
+  useEffect(() => { localStorage.setItem('ics-schedule', JSON.stringify(schedule)) }, [schedule])
+
   const now      = useNow()
-  const active   = getActiveSlot(now)
-  const next     = getNextSlot(now)
+  const active   = getActiveSlot(schedule, now)
+  const next     = getNextSlot(schedule, now)
   const acc      = overallAcc(MATRIX)
   const total    = totalItems(MATRIX)
   const missed   = totalMissorted(MATRIX)
@@ -303,10 +412,10 @@ export default function App() {
         <div className="header-right">
           <span className="clock">{timeStr}</span>
           {active
-            ? <span className="badge badge-active">{active.grade} · now</span>
+            ? <button className="badge badge-active badge-btn" onClick={() => setSchedOpen(true)}>{active.name || active.grade} · now</button>
             : next
-              ? <span className="badge badge-next">Next: {next.grade} at {fmt12(next.start)}</span>
-              : <span className="badge badge-done">No more sessions today</span>
+              ? <button className="badge badge-next badge-btn" onClick={() => setSchedOpen(true)}>Next: {next.name || next.grade} at {fmt12(next.start)}</button>
+              : <button className="badge badge-done badge-btn" onClick={() => setSchedOpen(true)}>No more sessions today</button>
           }
         </div>
       </header>
@@ -354,6 +463,14 @@ export default function App() {
       </main>
 
       <ChatPanel />
+
+      {schedOpen && (
+        <ScheduleEditor
+          schedule={schedule}
+          setSchedule={setSchedule}
+          onClose={() => setSchedOpen(false)}
+        />
+      )}
 
     </div>
   )
