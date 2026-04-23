@@ -47,14 +47,11 @@ html, body { height: 100%; overflow: hidden; }
   background: var(--bg);
 }
 
-.logo {
-  font-size: clamp(16px, 1.8vw, 26px);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  background: var(--grad-logo);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.logo-img {
+  height: clamp(24px, 3vh, 36px);
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .header-right {

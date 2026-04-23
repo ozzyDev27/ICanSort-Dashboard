@@ -23,7 +23,6 @@ function getNextSlot(sched, now) {
   return [...sched].sort((a,b)=>toMins(a.start)-toMins(b.start)).find(s => toMins(s.start) > cur) ?? null
 }
 
-/* ── Brand / data constants ──────────────────────── */
 const CATEGORIES = ['Garbage', 'Recycling', 'Compost']
 const CAT_COLOR  = { Garbage: '#a16207', Recycling: '#2563eb', Compost: '#16a34a' }
 const CAT_ICON   = { Garbage: '🗑️', Recycling: '♻️', Compost: '🌱' }
@@ -421,7 +420,7 @@ export default function App() {
     <div className="page">
 
       <header className="header">
-        <span className="logo">ICanSort</span>
+        <img src="/icansortlogo.png" className="logo-img" alt="ICanSort" />
         <div className="header-right">
           <span className="clock">{timeStr}</span>
           {active
