@@ -1,18 +1,47 @@
 :root {
   --green:   #1aad1a;
   --blue:    #1a6fc4;
+  --red:     #dc2626;
   --black:   #000000;
   --text:    #374151;
   --text-h:  #000000;
   --bg:      #ffffff;
   --border:  #d1d5db;
   --surface: #f3f4f6;
-  --grad-logo: #1aad1a;
+  --grad-logo:      #1aad1a;
+  --cat-garbage:    #a16207;
+  --cat-recycling:  #2563eb;
+  --cat-compost:    #16a34a;
   font-family: 'Fredoka', system-ui, sans-serif;
   font-size: clamp(12px, 1.2vw, 16px);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+[data-pink] {
+  --green:     #e91e8c;
+  --blue:      #c2185b;
+  --red:       #ad1a6f;
+  --black:     #880e4f;
+  --text:      #6d2b50;
+  --text-h:    #4a0030;
+  --bg:        #fff0f6;
+  --border:    #f8bbd0;
+  --surface:   #fce4ec;
+  --grad-logo:     #e91e8c;
+  --cat-garbage:   #b5196e;
+  --cat-recycling: #c2185b;
+  --cat-compost:   #e91e8c;
+}
+@media (prefers-color-scheme: dark) {
+  [data-pink] {
+    --text:    #f48fb1;
+    --text-h:  #fce4ec;
+    --bg:      #1a0010;
+    --border:  #4a0030;
+    --surface: #2d0020;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,13 +74,16 @@ html, body { height: 100%; overflow: hidden; }
   height: clamp(42px, 5.4vh, 62px);
   border-bottom: 2px solid var(--black);
   background: var(--bg);
+  overflow: visible;
 }
 
 .logo-img {
-  height: clamp(24px, 3vh, 36px);
+  height: clamp(64px, 9vh, 108px);
   width: auto;
   display: block;
   object-fit: contain;
+  position: relative;
+  z-index: 10;
 }
 
 .header-right {
@@ -126,7 +158,7 @@ html, body { height: 100%; overflow: hidden; }
 }
 .kpi:nth-child(1)::before { background: var(--green); }
 .kpi:nth-child(2)::before { background: var(--black); }
-.kpi:nth-child(3)::before { background: #dc2626; }
+.kpi:nth-child(3)::before { background: var(--red); }
 .kpi:nth-child(4)::before { background: var(--blue); }
 .kpi:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--black); }
 
@@ -139,7 +171,7 @@ html, body { height: 100%; overflow: hidden; }
 .kpi-sub  { font-size: clamp(11px, 1.2vw, 17px); font-weight: 600; opacity: 0.55; }
 .kpi-lbl  { font-size: clamp(9px, 0.8vw, 12px);  font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.5; }
 .kpi-green { color: var(--green); }
-.kpi-red   { color: #dc2626; }
+.kpi-red   { color: var(--red); }
 .kpi-blue  { color: var(--blue); }
 
 @media (prefers-color-scheme: dark) {
@@ -258,8 +290,8 @@ html, body { height: 100%; overflow: hidden; }
 .mx-pct   { font-size: clamp(14px, 1.6vw, 22px); font-weight: 700; letter-spacing: -0.04em; color: var(--text-h); line-height: 1; }
 .mx-count { font-size: clamp(10px, 0.9vw, 13px); color: var(--text); opacity: 0.4; }
 
-.mx-correct { background: color-mix(in srgb, #1aad1a calc(var(--v) * 55%), var(--surface)); border-color: color-mix(in srgb, #1aad1a calc(var(--v) * 40%), transparent); }
-.mx-wrong   { background: color-mix(in srgb, #dc2626 calc(var(--v) * 40%), var(--surface)); border-color: color-mix(in srgb, #dc2626 calc(var(--v) * 30%), transparent); }
+.mx-correct { background: color-mix(in srgb, var(--green) calc(var(--v) * 55%), var(--surface)); border-color: color-mix(in srgb, var(--green) calc(var(--v) * 40%), transparent); }
+.mx-wrong   { background: color-mix(in srgb, var(--red)   calc(var(--v) * 40%), var(--surface)); border-color: color-mix(in srgb, var(--red)   calc(var(--v) * 30%), transparent); }
 
 /* ── Daily table ─────────────────────────────────── */
 .daily-wrap  { display: flex; flex-direction: column; gap: 32px; }
@@ -275,10 +307,10 @@ html, body { height: 100%; overflow: hidden; }
 
 .dt-grade { color: var(--text-h); font-weight: 500; }
 .dt-sub   { font-size: 12px; opacity: 0.5; }
-.dt-miss  { color: #e11d48; }
+.dt-miss  { color: var(--red); }
 .dt-acc   { color: var(--text-h); font-weight: 600; }
 .dt-total { font-weight: 700; border-top: 1px solid var(--border); }
-@media (prefers-color-scheme: dark) { .dt-miss { color: #fb7185; } }
+@media (prefers-color-scheme: dark) { .dt-miss { color: color-mix(in srgb, var(--red) 80%, #fff); } }
 
 .topmiss-section-title {
   font-size: clamp(11px, 1vw, 14px);
@@ -531,7 +563,7 @@ html, body { height: 100%; overflow: hidden; }
   line-height: 1;
   padding: 2px 6px;
 }
-.sched-close:hover { color: #dc2626; }
+.sched-close:hover { color: var(--red); }
 
 .sched-body {
   flex: 1;
@@ -581,7 +613,7 @@ html, body { height: 100%; overflow: hidden; }
   padding: 4px;
   line-height: 1;
 }
-.sched-del:hover { opacity: 1; color: #dc2626; }
+.sched-del:hover { opacity: 1; color: var(--red); }
 
 .sched-add {
   align-self: flex-start;

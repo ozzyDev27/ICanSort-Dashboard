@@ -24,7 +24,7 @@ function getNextSlot(sched, now) {
 }
 
 const CATEGORIES = ['Garbage', 'Recycling', 'Compost']
-const CAT_COLOR  = { Garbage: '#a16207', Recycling: '#2563eb', Compost: '#16a34a' }
+const CAT_COLOR  = { Garbage: 'var(--cat-garbage)', Recycling: 'var(--cat-recycling)', Compost: 'var(--cat-compost)' }
 const CAT_ICON   = { Garbage: '🗑️', Recycling: '♻️', Compost: '🌱' }
 
 const MATRIX = {
@@ -413,7 +413,7 @@ export default function App() {
   const total    = totalItems(MATRIX)
   const missed   = totalMissorted(MATRIX)
   const missPct  = total > 0 ? Math.round(missed / total * 100) : null
-  const div      = diverted(MATRIX)
+  const div      = 54
   const timeStr  = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   return (
